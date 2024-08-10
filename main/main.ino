@@ -21,6 +21,8 @@
 
 */
 
+#include "math.h" // pow
+
 #include "configuration.h"
 #include "rom/rtc.h"
 #include <TinyGPS++.h>
@@ -59,9 +61,33 @@ void buildPacket(uint8_t txBuffer[]);  // needed for platformio
  * @return true if we decided to send.
  */
 bool trySend() {
+    static float lat_old = 0, lon_old = 0;
+    static int repeat_same_pos = 0;
+
+    float nearby_sq = NEARBY_DISTANCE_KM * NEARBY_DISTANCE_KM;
+
+    float dx = 71.5 * (lon_old - gps_longitude());
+    float dy = 111.3 * (lat_old - gps_latitude());
+    float dist_sq = pow(dy, 2) + pow(dx, 2); // in km^2
+
+    Serial.printf("Entfernung: %.3f\n", dist_sq);
+
+    if (dist_sq <= nearby_sq) {
+        repeat_same_pos++;
+        if (repeat_same_pos > 5)
+            repeat_same_pos = 5;
+        else
+            dist_sq = 9999;
+    } else {
+        repeat_same_pos = 0;
+    }
+
     packetSent = false;
     // We also wait for altitude being not exactly zero, because the GPS chip generates a bogus 0 alt report when first powered on
-    if (0 < gps_hdop() && gps_hdop() < 50 && gps_latitude() != 0 && gps_longitude() != 0 && gps_altitude() != 0) {
+    if (0 < gps_hdop() && gps_hdop() < 50 && gps_latitude() != 0 && gps_longitude() != 0 && gps_altitude() != 0 && dist_sq > nearby_sq) {
+        lat_old = gps_latitude();
+        lon_old = gps_longitude();
+
         char buffer[40];
         snprintf(buffer, sizeof(buffer), "Latitude: %10.6f\n", gps_latitude());
         screen_print(buffer);

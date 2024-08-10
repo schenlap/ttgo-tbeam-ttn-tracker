@@ -53,6 +53,9 @@ void ttn_register(void (*callback)(uint8_t message));
 //Uncomment if you always want to see the boot logo at boot time
 #define ALWAYS_SHOW_LOGO
 
+//set distance for nearby positions. These are only repeated 5 times
+#define NEARBY_DISTANCE_KM 0.1
+
 //Uncomment to enable discarding network settings by long pressing second button
 //Used for resetting frame counter, required to be done for migrating TTN v2 -> v3 (or switching applications on TTN)
 //#define PREFS_DISCARD
