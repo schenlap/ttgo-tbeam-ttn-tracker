@@ -20,6 +20,7 @@
 */
 
 #include <TinyGPS++.h>
+#include <credentials.h>
 
 uint32_t LatitudeBinary;
 uint32_t LongitudeBinary;
@@ -68,7 +69,7 @@ static void gps_loop() {
 #if defined(PAYLOAD_USE_FULL)
 
     // More data than PAYLOAD_USE_CAYENNE
-    void buildPacket(uint8_t txBuffer[10])
+    void buildPacket(uint8_t txBuffer[12])
     {
         LatitudeBinary = ((_gps.location.lat() + 90) / 180.0) * 16777215;
         LongitudeBinary = ((_gps.location.lng() + 180) / 360.0) * 16777215;
@@ -97,6 +98,8 @@ static void gps_loop() {
         txBuffer[7] = altitudeGps & 0xFF;
         txBuffer[8] = hdopGps & 0xFF;
         txBuffer[9] = sats & 0xFF;
+        txBuffer[10] = ( DEVADDR >> 8 ) & 0xFF;
+        txBuffer[11] = DEVADDR & 0xFF;
     }
 
 #elif defined(PAYLOAD_USE_CAYENNE)

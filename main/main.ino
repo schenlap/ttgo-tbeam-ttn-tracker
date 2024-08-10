@@ -38,7 +38,7 @@ bool packetSent, packetQueued;
 
 #if defined(PAYLOAD_USE_FULL)
     // includes number of satellites and accuracy
-    static uint8_t txBuffer[10];
+    static uint8_t txBuffer[12];
 #elif defined(PAYLOAD_USE_CAYENNE)
     // CAYENNE DF
     static uint8_t txBuffer[11] = {0x03, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
