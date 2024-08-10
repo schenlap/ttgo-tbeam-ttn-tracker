@@ -15,66 +15,63 @@ NOTE: There are now 2 versions of the TTGO T-BEAM, the first version (Rev0) and 
 
 The preferred method to install this library is via [PlatformIO](https://platformio.org/install), however the original instructions for installing with the Arduino IDE are below but YMMV.
 
-1. Follow the directions at [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32) to install the board to the Arduino IDE and use board 'T-Beam'.
+1. Install visual studio code
 
-2. Install the Arduino IDE libraries:
+2. Edit ```platformio.ini``` and uncomment the proper frequency for your region.
 
-   * [mcci-catena/arduino-lmic](https://github.com/mcci-catena/arduino-lmic) (for Rev0 and Rev1)
-   * [mikalhart/TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus) (for Rev0 and Rev1)
-   * [ThingPulse/esp8266-oled-ssd1306](https://github.com/ThingPulse/esp8266-oled-ssd1306) (for Rev0 and Rev1)
-   * [lewisxhe/AXP202X_Library](https://github.com/lewisxhe/AXP202X_Library) (for Rev1 only)
+3. Edit this project file ```main/configuration.h``` and select your correct board revision, either T_BEAM_V07 or T_BEAM_V10 (see [T-BEAM Board Versions](#t-beam-board-versions) to determine which board revision you have).
 
-3. Edit ```arduino-lmic/project_config/lmic_project_config.h``` and uncomment the proper frequency for your region.
-
-4. Edit this project file ```main/configuration.h``` and select your correct board revision, either T_BEAM_V07 or T_BEAM_V10 (see [T-BEAM Board Versions](#t-beam-board-versions) to determine which board revision you have).
-
-5. Edit this project file ```main/credentials.h``` to use either ```USE_ABP``` or ```USE_OTAA``` and add the Keys/EUIs for your Application's Device from The Things Network.
+4. Edit this project file ```main/credentials.h``` to use either ```USE_ABP``` or ```USE_OTAA``` and add the Keys/EUIs for your Application's Device from The Things Network.
 
 6. Add the TTN Mapper integration to your Application (and optionally the Data Storage integration if you want to access the GPS location information yourself or use [TTN Tracker](#ttn-tracker), then add the Decoder code:
 
 ```C
-function Decoder(bytes, port) {
-    var decoded = {};
+function decodeUplink(input) {
+    // Test Data: C46A14895B6301C21905
+    var bytes = input.bytes;
+    var port = input.fPort;
+    var error = [];
+    
+    if (port != 10) {
+      error.push("no uplink data");
+      return {
+        errors: error 
+      };
+    }
+    var data = {};
 
-    decoded.latitude = ((bytes[0]<<16)>>>0) + ((bytes[1]<<8)>>>0) + bytes[2];
-    decoded.latitude = (decoded.latitude / 16777215.0 * 180) - 90;
+    data.latitude = ((bytes[0]<<16)>>>0) + ((bytes[1]<<8)>>>0) + bytes[2];
+    data.latitude = (data.latitude / 16777215.0 * 180) - 90;
 
-    decoded.longitude = ((bytes[3]<<16)>>>0) + ((bytes[4]<<8)>>>0) + bytes[5];
-    decoded.longitude = (decoded.longitude / 16777215.0 * 360) - 180;
+    data.longitude = ((bytes[3]<<16)>>>0) + ((bytes[4]<<8)>>>0) + bytes[5];
+    data.longitude = (data.longitude / 16777215.0 * 360) - 180;
 
     var altValue = ((bytes[6]<<8)>>>0) + bytes[7];
     var sign = bytes[6] & (1 << 7);
-    if(sign) decoded.altitude = 0xFFFF0000 | altValue;
-    else decoded.altitude = altValue;
+    if(sign) data.altitude = 0xFFFF0000 | altValue;
+    else data.altitude = altValue;
 
-    decoded.hdop = bytes[8] / 10.0;
-    decoded.sats = bytes[9];
-
-    return decoded;
+    data.hdop = bytes[8] / 10.0;
+    data.sats = bytes[9];
+    
+    data.id = ((bytes[10]<<8)>>>0) + bytes[11]
+    
+    data.field1 = data.latitude;
+    data.field2 = data.longitude;
+    data.field3 = data.altitude;
+    data.field4 = data.hdop;
+    data.field5 = data.sats;
+    data.field6 = 1;
+    data.field7 = data.id;
+    
+    return {
+        data: data,
+        warnings: [],
+        errors: []
+    }
 }
 ```
 
-7. Open this project file ```main/main.ino``` with the Arduino IDE and upload it to your TTGO T-Beam.
+7. Open this project directory ```./``` with visual studio code to compile and upload it to your TTGO T-Beam.
 
 8. Turn on the device and once a GPS lock is acquired, the device will start sending data to TTN and TTN Mapper.
-
-
-### TTN Tracker
-
-I also developed [The Things Network Tracker (TTN-Tracker)](https://github.com/kizniche/ttn-tracker), a web app that pulls GPS data from TTN and displays it on a map in real-time (TTN Mapper is not real-time) that can be displayed on your phone, tablet, or computer. This is handy for testing signal range while driving, as you can see location points appearing under your moving location dot on the map (if you grant location sharing permissions to the web app) when a successful transmission has been achieved.
-
-### T-BEAM Board Versions
-
-#### Rev0
-
-![TTGO T-Beam 01](img/TTGO-TBeam-01.jpg)
-
-![TTGO T-Beam 02](img/TTGO-TBeam-02.jpg)
-
-![TTGO T-Beam 03](img/TTGO-TBeam-03.jpg)
-
-#### Rev1
-
-![T-BEAM-Rev1-01](img/T-BEAM-Rev1-01.jpg)
-
-![T-BEAM-Rev1-02](img/T-BEAM-Rev1-02.jpg)
