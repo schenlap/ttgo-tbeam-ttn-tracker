@@ -105,7 +105,7 @@ id = num2str(data(7)); % last two bytes of devid
 body = ['id=', id, '&lat=', lat, '&lon=', lon, '&altitude',  alt];
 
 r = RequestMessage(matlab.net.http.RequestMethod.POST, '', body)
-uri = URI('http://TRACCAR_SERVER_IP:5055?')
+uri = URI('http://TRACCAR_SERVER_IP:5055')
 resp = send(r,uri);
 status = resp.StatusCode
 ```
