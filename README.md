@@ -23,7 +23,7 @@ The preferred method to install this library is via [PlatformIO](https://platfor
 
 4. Edit this project file ```main/credentials.h``` to use either ```USE_ABP``` or ```USE_OTAA``` and add the Keys/EUIs for your Application's Device from The Things Network.
 
-6. Add the TTN Mapper integration to your Application (and optionally the Data Storage integration if you want to access the GPS location information yourself or use [TTN Tracker](#ttn-tracker), then add the Decoder code:
+6. Add the ``TTN Mapper integration`` to your Application (and optionally the Data Storage integration if you want to access the GPS location information yourself or use [TTN Tracker](#ttn-tracker), then add the Decoder code:
 
 ```C
 function decodeUplink(input) {
@@ -75,3 +75,51 @@ function decodeUplink(input) {
 7. Open this project directory ```./``` with visual studio code to compile and upload it to your TTGO T-Beam.
 
 8. Turn on the device and once a GPS lock is acquired, the device will start sending data to TTN and TTN Mapper.
+
+## Use t-beam to trac your car with https://www.traccar.org
+
+Aditionaly to TTN Mapper you can trac your car (or what else) with traccar. To send data to the traccar API we use [ThingSpeak](https://thingspeak.com), which is free for use for non commercial tasks. With this soution we can use traccar without any sim card und use LoRaWAN instead.
+
+1. Create an account on [ThingSpeak](https://thingspeak.com).
+
+2. Create an new channel and add an MATLAB Analysis (custome code).
+
+```C
+%get posistion an send to traccar
+import matlab.net.*
+import matlab.net.http.*
+
+readChannelID = 123456; % Channel ID of just created ThingSpeak channel
+
+% Channel Read API Key   
+% If your channel is private, then enter the read API Key between the '' below: 
+readAPIKey = 'XXXXXXXXXXXXXXXX'; % read API key from just created ThingSpeak channel
+
+[data, timeStamp] = thingSpeakRead(readChannelID, 'ReadKey',readAPIKey); 
+
+lat = num2str(data(1));
+lon = num2str(data(2));
+alt = num2str(data(3));
+id = num2str(data(7)); % last two bytes of devid
+
+body = ['id=', id, '&lat=', lat, '&lon=', lon, '&altitude',  alt];
+
+r = RequestMessage(matlab.net.http.RequestMethod.POST, '', body)
+uri = URI('http://TRACCAR_SERVER_IP:5055?')
+resp = send(r,uri);
+status = resp.StatusCode
+```
+
+3. Change ```TRACCAR_SERVER_IP``` adress, ```readChannelID``` und ```readAPIKey```. Port 5055 should be ok, this is for OsMand protocol.
+
+4. Add channel settings
+![Channel settings](img/channelsettings.png)
+
+5. Add a Schedule Actions: Add react and configure code to execute to your matlab script we added in 2.
+![Schedule Action](img/schedule.png)
+![React](img/react.png)
+
+7. Add a new webhook integration in TheThingsNetwaork and fill in ThingSpeak channel-id and ThingSpeak write API key. You have to use the payload decoder from above in TheTingsNetwork, it also prepares data for ThingSpeak inetegration.
+
+8. traccar and ttn-mapper can be used parallel. If you do not want to use ttn-mapper, do not add the ttn-mapper integration.
+
